@@ -41,7 +41,7 @@ function getappx(file) {
 function makeappx(file) {
   var deferred = Q.defer();
   //var cmdLine = 'powershell makeappx ' + file.dir;
-  var cmdLine = 'ls';
+  var cmdLine = 'touch ' + path.join(file.out, file.name + '.appx');
   console.log(cmdLine);
   exec(cmdLine, function(err, stdout, stderr) {
     var output = {

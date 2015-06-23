@@ -16,6 +16,8 @@ app.use(cors(corsOptions));
 
 app.use(multer({dest: './uploads/'}));
 
+app.use('/output', express.static('output'));
+
 app.get('/v1/test', function(req, res) {
   console.log(process.cwd());
 });
