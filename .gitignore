@@ -1,0 +1,9 @@
+.DS_Store
+.sass-cache
+dist
+Desktop.ini
+node_modules
+*.swp
+*.swo
+.publish
+*.swn
