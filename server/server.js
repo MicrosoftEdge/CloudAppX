@@ -23,8 +23,8 @@ app.get('/v1/test', function(req, res) {
 app.post('/v1/upload', function(req, res, next) {
   if (req.files) {
     console.log(util.inspect(req.files));
-    build.makeappx(req.files).then(function(test) {
-      res.send(test);
+    build.makeappx(req.files).then(function(file) {
+      res.send(file);
     });
   }
 });
