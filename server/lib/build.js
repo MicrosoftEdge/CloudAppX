@@ -1,8 +1,11 @@
 var unzip = require('unzip');
 var fs = require('fs');
-var _ = require('lodash');
 var Q = require('q');
-var exec = require('child_process').exec();
+var exec = require('child_process').exec;
+var util = require('util');
+var path = require('path');
+
+var convert = require('./convert');
 
 function getappx(file) {
   var deferred = Q.defer();
@@ -13,22 +16,39 @@ function getappx(file) {
         deferred.resolve(result);
       });
     } else if (file.json) {
-    getContents(file.json).then(function(result) {
-      console.log('converting');
-    });
+    getContents(file.json)
+      .then(function(result) {
+        var deferred = Q.defer();
+        fs.readdir(result.dir, function(err, list) {
+          if (err) {
+            deferred.reject(err);
+          }
+          deferred.resolve(path.join(result.dir,list[0]));
+        });
+        return deferred.promise;
+      })
+      .then(convert.getjson)
+      .then(convert.convertjson)
+      .then(function(result) {
+        console.log(result);
+        deferred.resolve(result);
+      });
   }
   return deferred.promise;
 }
 
-function makeappx(directory) {
+function makeappx(file) {
   var deferred = Q.defer();
-  var cmdLine = 'powershell makeappx ' + directory;
+  //var cmdLine = 'powershell makeappx ' + file.dir;
+  var cmdLine = 'ls';
   console.log(cmdLine);
   exec(cmdLine, function(err, stdout, stderr) {
-    if (err) {
-      deferred.reject(err);
-    }
-    deferred.resolve({stdout: stdout, stderr: stderr});
+    var output = {
+      name: path.join(file.dir, file.name + '.appx'),
+      stdout: stdout,
+      stderr: stderr
+    };
+    deferred.resolve(output);
   });
 
   return deferred.promise;
@@ -36,11 +56,11 @@ function makeappx(directory) {
 
 function getContents(file) {
   var deferred = Q.defer();
-  var outputDir = 'output/' + _.trimRight(file.name, '.zip');
+  var outputDir = path.join('output', file.name.slice(0,-4));
   fs.createReadStream(file.path)
     .pipe(unzip.Extract({ path: outputDir }))
     .on('close', function() {
-      deferred.resolve(outputDir);
+      deferred.resolve({name: file.originalname.slice(0,-4), dir:outputDir});
     });
   return deferred.promise;
 }

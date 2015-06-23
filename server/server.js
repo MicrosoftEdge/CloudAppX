@@ -24,7 +24,7 @@ app.post('/v1/upload', function(req, res, next) {
   if (req.files) {
     console.log(util.inspect(req.files));
     build.getappx(req.files).then(function(file) {
-      res.send(file);
+      res.send(file.name);
     });
   }
 });
