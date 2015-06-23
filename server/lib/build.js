@@ -6,14 +6,25 @@ var Q = require('q');
 function makeappx(file) {
   var deferred = Q.defer();
   if (file.xml) {
-    var outputDir = _.trimRight(file.xml.name, '.zip');
-    fs.createReadStream(file.xml.path)
-      .pipe(unzip.Extract({ path: 'output/' + outputDir}))
-      .on('close', function() {
-        console.log('unzipped');
-        deferred.resolve(outputDir);
-      });
+    getContents(file.xml).then(function(result) {
+      deferred.resolve(result);
+    });
+  } else if (file.json) {
+    getContents(file.json).then(function(result) {
+      console.log('converting');
+    });
   }
+  return deferred.promise;
+}
+
+function getContents(file) {
+  var deferred = Q.defer();
+  var outputDir = _.trimRight(file.name, '.zip');
+  fs.createReadStream(file.path)
+    .pipe(unzip.Extract({ path: 'output/' + outputDir }))
+    .on('close', function() {
+      deferred.resolve(outputDir);
+    });
   return deferred.promise;
 }
 
