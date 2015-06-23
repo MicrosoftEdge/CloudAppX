@@ -7,3 +7,5 @@ gulp.task('appx:dev', ['clean', 'sass', 'lint', 'images', 'markup', 'misc', 'js'
 gulp.task('ext', ['clean', 'sass', 'lint', 'images', 'markup', 'misc', 'js', 'watchext']);
 
 gulp.task('appx:ext', ['appx']);
+
+gulp.task('server', ['nodemon', 'default']);

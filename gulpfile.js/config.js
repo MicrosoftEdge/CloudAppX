@@ -57,6 +57,10 @@ module.exports = {
       outputName: 'bundle.js'
     }]
   },
+  nodemon: {
+    script: './server/server.js',
+    watch: './server'
+  },
   production: {
     cssSrc: dest + '/**/*.css',
     jsSrc: dest + '/**/*.js',
