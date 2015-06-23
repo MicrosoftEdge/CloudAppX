@@ -6,11 +6,12 @@ var Q = require('q');
 function makeappx(file) {
   var deferred = Q.defer();
   if (file.xml) {
+    var outputDir = _.trimRight(file.xml.name, '.zip');
     fs.createReadStream(file.xml.path)
-      .pipe(unzip.Extract({ path: 'output/' + _.trimRight(file.xml.name, '.zip')}))
+      .pipe(unzip.Extract({ path: 'output/' + outputDir}))
       .on('close', function() {
         console.log('unzipped');
-        deferred.resolve(test);
+        deferred.resolve(outputDir);
       });
   }
   return deferred.promise;
