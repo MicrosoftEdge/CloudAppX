@@ -29,6 +29,7 @@ function getappx(file) {
       })
       .then(convert.getjson)
       .then(convert.convertjson)
+      .then(makeappx)
       .then(function(result) {
         console.log(result);
         deferred.resolve(result);
@@ -45,6 +46,7 @@ function makeappx(file) {
   exec(cmdLine, function(err, stdout, stderr) {
     var output = {
       name: path.join(file.dir, file.name + '.appx'),
+      out: path.join(file.out, file.name + '.appx'),
       stdout: stdout,
       stderr: stderr
     };
@@ -60,7 +62,9 @@ function getContents(file) {
   fs.createReadStream(file.path)
     .pipe(unzip.Extract({ path: outputDir }))
     .on('close', function() {
-      deferred.resolve({name: file.originalname.slice(0,-4), dir:outputDir});
+      deferred.resolve({name: file.originalname.slice(0,-4),
+                       dir: outputDir,
+                       out: outputDir });
     });
   return deferred.promise;
 }

@@ -22,7 +22,13 @@ function convertjson(manifest) {
     if(err) {
       deferred.reject(err);
     }
-    deferred.resolve(path.join(OUTPUT_PATH, manifest.json.content.short_name));
+    var appName = manifest.json.content.short_name;
+    var output = {
+      name: appName,
+      dir: path.join(manifest.path, appName, OUTPUT_PATH),
+      out: path.join(manifest.path, '../')
+    };
+    deferred.resolve(output);
   });
   return deferred.promise;
 }
