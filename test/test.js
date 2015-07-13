@@ -22,6 +22,12 @@ describe('end to end', function() {
       fs.unlinkSync(path.join(__dirname, 'assets/package.appx'));
     }
   });
+
+  it ('generates the .zip file', function() {
+    var zip = fs.existsSync(path.join(__dirname, 'assets/testpkg.zip'));
+    expect(zip).to.exist;
+  });
+
   it ('generates the .appx package', function() {
     var pkg = fs.existsSync(path.join(__dirname, 'assets/package.appx'));
     expect(pkg).to.exist;
