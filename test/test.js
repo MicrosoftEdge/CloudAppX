@@ -14,12 +14,12 @@ describe('end to end', function() {
   });
   after(function() {
     var pkgdir = path.join(__dirname, 'assets/testpkg.zip');
-    var zipdir = path.join(__dirname, 'assets/package.appx');
+    var zipdir = path.join(__dirname, 'assets/testpkg.appx');
     if (fs.existsSync(pkgdir)) {
-      fs.unlinkSync(path.join(__dirname, 'assets/testpkg.zip'));
+      fs.unlinkSync(pkgdir);
     }
     if (fs.existsSync(zipdir)) {
-      fs.unlinkSync(path.join(__dirname, 'assets/package.appx'));
+      fs.unlinkSync(zipdir);
     }
   });
 
@@ -29,7 +29,7 @@ describe('end to end', function() {
   });
 
   it ('generates the .appx package', function() {
-    var pkg = fs.existsSync(path.join(__dirname, 'assets/package.appx'));
+    var pkg = fs.existsSync(path.join(__dirname, 'assets/testpkg.appx'));
     expect(pkg).to.exist;
   });
 });
