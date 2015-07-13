@@ -20,8 +20,8 @@
   "browserify-shim": {},
   "devDependencies": {
     "chai": "^3.0.0",
-    "cloudappx": "0.0.5",
-    "mocha": "^2.2.5"
+    "cloudappx": "*",
+    "mocha": "*"
   },
   "dependencies": {
     "cors": "^2.7.1",
