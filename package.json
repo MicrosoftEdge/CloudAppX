@@ -6,6 +6,9 @@
     "type": "git",
     "url": ""
   },
+  "scripts": {
+    "test": "mocha test"
+  },
   "browser": {
     "plugin": "./src/javascript/vendor/plugin.js"
   },
@@ -15,11 +18,14 @@
     ]
   },
   "browserify-shim": {},
-  "devDependencies": {},
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "cloudappx": "0.0.5",
+    "mocha": "^2.2.5"
+  },
   "dependencies": {
     "cors": "^2.7.1",
     "express": "^4.13.0",
-    "manifoldjs": "^0.3.0",
     "multer": "^0.1.8",
     "q": "^1.4.1",
     "unzip": "^0.1.11",

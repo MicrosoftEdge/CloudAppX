@@ -5,44 +5,24 @@ var exec = require('child_process').exec;
 var util = require('util');
 var path = require('path');
 var unzip2 = require('unzip2');
-
-var convert = require('./convert');
+var os = require('os');
 
 function getappx(file) {
   var deferred = Q.defer();
-  if (file.xml) {
-    getContents(file.xml)
-    .then(makeappx)
-    .then(function(result) {
-        deferred.resolve(result);
-      });
-    } else if (file.json) {
-    getContents(file.json)
-      .then(function(result) {
-        var deferred = Q.defer();
-        fs.readdir(result.dir, function(err, list) {
-          if (err) {
-            deferred.reject(err);
-          }
-          deferred.resolve(path.join(result.dir,list[0]));
-        });
-        return deferred.promise;
-      })
-      .then(convert.getjson)
-      .then(convert.convertjson)
-      .then(makeappx)
-      .then(function(result) {
-        console.log(result);
-        deferred.resolve(result);
-      });
-  }
+  getContents(file.xml)
+  .then(makeappx)
+  .then(function(result) {
+    deferred.resolve(result);
+  });
   return deferred.promise;
 }
 
 function makeappx(file) {
   var deferred = Q.defer();
-  var cmdLine = '.\\appxsdk\\makeappx.exe pack /o /d ' + file.dir + ' /p ' + file.out + '\\Package.appx /l /v';
-  //var cmdLine = 'touch ' + path.join(file.out, file.name + '.appx');
+  var cmdLine = 'touch ' + path.join(file.out, file.name + '.appx');
+  if (os.platform() === 'win32') {
+    cmdLine = '.\\appxsdk\\makeappx.exe pack /o /d ' + file.dir + ' /p ' + file.out + '\\Package.appx /l /v';
+  }
   console.log(cmdLine);
   exec(cmdLine, function(err, stdout, stderr) {
     console.log(stdout);

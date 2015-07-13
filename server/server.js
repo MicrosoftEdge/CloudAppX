@@ -3,6 +3,7 @@ var cors = require('cors');
 var fs = require('fs');
 var multer = require('multer');
 var util = require('util');
+var Q = require('q');
 
 var app = express();
 
@@ -31,8 +32,21 @@ app.post('/v1/upload', function(req, res, next) {
   }
 });
 
-var server = app.listen(8080, function () {
-  var port = server.address().port;
-  console.log('Example app listening at http://localhost:%s', port);
-});
+function serve() {
+  var deferred = Q.defer();
+  var server = app.listen(8080, function () {
+    var port = server.address().port;
+    if (!process.env.TEST) {
+      console.log('Example app listening at http://localhost:%s', port);
+    }
+    deferred.resolve(port);
+  });
+  return deferred.promise;
+}
+
+if (!module.parent) {
+  serve();
+} else {
+  module.exports = serve;
+}
 
