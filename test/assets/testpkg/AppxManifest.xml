@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package 
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+    xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" 
+    IgnorableNamespaces="uap mp">
+
+    <Identity
+        Name="HostedWebAppQuickStart" 
+        ProcessorArchitecture="neutral"
+        Publisher="CN=Contoso Corporation, O=Contoso Corporation, C=US"
+        Version="1.0.0.0" 
+        />
+
+    <mp:PhoneIdentity 
+        PhoneProductId="98c68aa2-9db9-46fe-9edc-72014c809b97" 
+        PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+
+    <Properties>
+        <DisplayName>HostedWebAppQuickStart</DisplayName>
+        <PublisherDisplayName>Contoso Corporation</PublisherDisplayName>
+        <Logo>Assets\StoreLogo.png</Logo>
+    </Properties>
+
+    <Resources>
+        <Resource Language="en-us" />
+    </Resources>
+
+    <Dependencies>
+        <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0"/>
+    </Dependencies>
+
+    <Capabilities>
+        <Capability Name="internetClient" />
+	<DeviceCapability Name="microphone"/>
+  	<DeviceCapability Name="webcam"/>
+    </Capabilities>
+
+    <Applications>
+      <Application Id="app" StartPage="http://alxlu.github.io/Win10Testbed" >
+            <uap:VisualElements 
+                DisplayName="HostedWebAppQuickStart"
+                Square150x150Logo="Assets\Logo150.png"
+                Square44x44Logo="Assets\Store44.png"
+                Description="Sample Codepen Calling Universal APIs"
+                BackgroundColor="#464646"
+		ToastCapable="true">
+                <uap:SplashScreen BackgroundColor="blue" Image="Assets\splashscreen.png"/>
+            </uap:VisualElements>
+            <uap:ApplicationContentUriRules>
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="http://alxlu.github.io/" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="http://alx.lu/" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="https://alxlu.github.io/" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="https://alx.lu/" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="http://*.*" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="http://*.*.*" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="http://*.*.*.*" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="https://*.*" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="https://*.*.*" />
+        	<uap:Rule Type="include" WindowsRuntimeAccess="all" Match="https://*.*.*.*" />
+      	   </uap:ApplicationContentUriRules>
+        </Application>
+    </Applications>
+
+</Package>
