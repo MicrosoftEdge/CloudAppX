@@ -6,6 +6,11 @@ var path = require('path');
 var fs = require('fs');
 var expect = require('chai').expect;
 
+describe('environment', function() {
+  it ('has the proper environment variable set', function() {
+    expect(process.env.CLOUDAPPX_SERVER).to.equal('http://localhost:8080');
+  });
+});
 describe('end to end', function() {
   before(function(done) {
     cloudappx_server().then(function() {
