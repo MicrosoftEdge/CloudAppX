@@ -54,4 +54,4 @@ function getContents(file) {
 }
 
 
-module.exports = {getappx: getappx};
+module.exports = {getappx: getappx, makeappx: makeappx};
