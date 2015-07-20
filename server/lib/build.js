@@ -1,4 +1,3 @@
-//var unzip = require('unzip');
 var fs = require('fs');
 var Q = require('q');
 var exec = require('child_process').exec;
@@ -7,7 +6,7 @@ var path = require('path');
 var unzip2 = require('unzip2');
 var os = require('os');
 
-var defaultToolsFolder = '.\\appxsdk\\';
+var defaultToolsFolder = 'appxsdk';
 var packageName = 'package.appx';
 
 function getappx(file) {
@@ -20,45 +19,77 @@ function getappx(file) {
   return deferred.promise;
 }
 
-function getLocalToolPath(toolname) {
+// search for local installation of Windows 10 Kit in the Windows registry
+function getWindowsKitPath(toolname) {
   var deferred = Q.defer();
+  
   var cmdLine = 'powershell -Command "Get-ItemProperty \\"HKLM:\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots\\" -Name KitsRoot10 | Select-Object -ExpandProperty KitsRoot10"';
   exec(cmdLine, function (err, stdout, stderr) {
+    var notFound = new Error('Cannot find a local installation of the Windows 10 Kit Tools.');
     if (err) {
-      console.log(err);
-      return deferred.reject(new Error('Failed to retrieve the Windows 10 Kit path.'));
-    } else if (stderr.length) {
-      console.log(stderr.trim());
+      return deferred.reject(notFound);
     }
-    
+
     var toolPath = path.resolve(stdout.replace(/[\n\r]/g, ''), 'bin', os.arch(), toolname);
     fs.exists(toolPath, function (exists) {
       if (exists) {
         return deferred.resolve(toolPath);
       }
-      
-      toolPath = path.resolve(__dirname, defaultToolsFolder + toolname);
-      fs.exists(toolPath, function (exists) {
-        if (!exists) {
-          toolPath = undefined;
-        }
-        
-        return deferred.resolve(toolPath);
-      });
+
+      return deferred.reject(notFound);
     });
   });
   
   return deferred.promise;
-};
+}
+
+// search for installation of Windows 10 tools in app's subfolder
+function getLocalToolsPath(toolname) {
+  var deferred = Q.defer();
+  
+  var toolPath = path.join(path.dirname(require.main.filename), defaultToolsFolder, toolname);
+  fs.exists(toolPath, function (exists) {
+    if (!exists) {
+      return deferred.reject(new Error('Unable to locate Windows 10 Kit Tools in app folder.'));
+    }
+    
+    return deferred.resolve(toolPath);
+  });
+
+  return deferred.promise;
+}
+
+function getToolPath(toolName) {
+  var deferred = Q.defer();
+  getLocalToolsPath(toolName).then(
+    function (toolPath) {
+      deferred.resolve(toolPath);
+    },
+    function (err) {
+      console.log(err.message);
+      getWindowsKitPath(toolName).then(
+        function (toolPath) {
+          deferred.resolve(toolPath);
+        },
+        function (err) {
+          console.log(err.message);
+          deferred.reject(new Error('Unable to locate Windows 10 Kit Tools.'));
+        }
+      );
+    }
+  );
+
+  return deferred.promise;
+}
 
 function makeappx(file) {
   var deferred = Q.defer();
   if (os.platform() === 'win32') {
-    getLocalToolPath('makeappx.exe').then(
+    getToolPath('makeappx.exe').then(
       function (toolpath) {
         cmdLine = undefined;
         if (toolpath) {
-          cmdLine = '"' + toolpath + '" pack /o /d ' + file.dir + ' /p ' + file.out + '\\' + packageName + ' /l /v';
+          cmdLine = '"' + toolpath + '" pack /o /d ' + file.dir + ' /p ' + file.out + '\\' + packageName + ' /l';
           console.log(cmdLine);
           exec(cmdLine, function (err, stdout, stderr) {
             if (err) {
