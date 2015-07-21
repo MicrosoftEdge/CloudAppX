@@ -34,7 +34,8 @@ app.post('/v1/upload', function(req, res, next) {
 
 function serve() {
   var deferred = Q.defer();
-  var server = app.listen(8080, function () {
+  var port = process.env.PORT || 8080;
+  var server = app.listen(port, function () {
     var port = server.address().port;
     if (!process.env.TEST) {
       console.log('Example app listening at http://localhost:%s', port);
