@@ -89,7 +89,8 @@ function makeappx(file) {
       function (toolpath) {
         cmdLine = undefined;
         if (toolpath) {
-          cmdLine = '"' + toolpath + '" pack /o /d ' + file.dir + ' /p ' + file.out + '\\' + packageName + ' /l';
+          var packagePath = path.join(file.out, file.name + '.appx');
+          cmdLine = '"' + toolpath + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
           console.log(cmdLine);
           exec(cmdLine, function (err, stdout, stderr) {
             if (err) {
@@ -100,7 +101,7 @@ function makeappx(file) {
             console.log(stderr);
             var output = {
               name: path.join(file.dir, file.name + '.appx'),
-              out: path.join(file.out, packageName),
+              out: packagePath,
               stdout: stdout,
               stderr: stderr
             };
