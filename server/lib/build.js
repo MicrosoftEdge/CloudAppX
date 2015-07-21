@@ -47,7 +47,11 @@ function getWindowsKitPath(toolname) {
 function getLocalToolsPath(toolname) {
   var deferred = Q.defer();
   
-  var toolPath = path.join(path.dirname(require.main.filename), defaultToolsFolder, toolname);
+  // test WEBSITE_SITE_NAME environment variable to determine if running in Azure
+  var toolPath = process.env.WEBSITE_SITE_NAME ? 
+                  path.join(process.env.HOME_EXPANDED, 'site', 'wwwroot', defaultToolsFolder, toolname) :
+                  path.join(path.dirname(require.main.filename), defaultToolsFolder, toolname);
+
   fs.exists(toolPath, function (exists) {
     if (!exists) {
       return deferred.reject(new Error('Unable to locate Windows 10 Kit Tools in app folder.'));
