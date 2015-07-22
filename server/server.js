@@ -21,6 +21,8 @@ app.use('/output', express.static('output'));
 
 app.get('/v1/test', function(req, res) {
   console.log(process.cwd());
+  res.set('Content-Type', 'text/plain');
+  res.send('Welcome to CloudAppX');
 });
 
 app.post('/v1/upload', function(req, res, next) {
