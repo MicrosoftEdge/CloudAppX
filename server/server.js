@@ -47,7 +47,7 @@ function serve() {
   return deferred.promise;
 }
 
-if (!module.parent) {
+if (process.env.WEBSITE_SITE_NAME || !module.parent) {
   serve();
 } else {
   module.exports = serve;
