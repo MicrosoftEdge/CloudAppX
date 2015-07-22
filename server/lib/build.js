@@ -131,9 +131,17 @@ function getContents(file) {
     .pipe(unzip2.Extract({ path: outputDir }))
     .on('close', function() {
       var name = file.originalname.slice(0,-4);
-      deferred.resolve({name: name,
-                       dir: path.join(outputDir, name),
-                       out: outputDir });
+      fs.unlink(file.path, function (err) {
+        if (err) {
+          console.log(err.message);
+        }
+
+        deferred.resolve({
+          name: name,
+          dir: path.join(outputDir, name),
+          out: outputDir
+        });
+      });
     });
   return deferred.promise;
 }
