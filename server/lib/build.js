@@ -96,13 +96,13 @@ function makeappx(file) {
           var packagePath = path.join(file.out, file.name + '.appx');
           cmdLine = '"' + toolpath + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
           console.log(cmdLine);
-          exec(cmdLine, function (err, stdout, stderr) {
-            if (err) {
-              deferred.reject(err);
-            }
-            
+          exec(cmdLine, function (err, stdout, stderr) {           
             console.log(stdout);
-            console.log(stderr);
+            if (err) {
+              console.log(stderr);
+              return deferred.reject(err);
+            }
+
             var output = {
               name: path.join(file.dir, file.name + '.appx'),
               out: packagePath,
