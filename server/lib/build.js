@@ -5,6 +5,7 @@ var util = require('util');
 var path = require('path');
 var unzip2 = require('unzip2');
 var os = require('os');
+var rmdir = require('rimraf');
 
 var defaultToolsFolder = 'appxsdk';
 var packageName = 'package.appx';
@@ -96,21 +97,28 @@ function makeappx(file) {
           var packagePath = path.join(file.out, file.name + '.appx');
           cmdLine = '"' + toolpath + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
           console.log(cmdLine);
-          exec(cmdLine, function (err, stdout, stderr) {           
+          exec(cmdLine, function (err, stdout, stderr) {
             console.log(stdout);
-            if (err) {
-              console.log(stderr);
-              return deferred.reject(err);
-            }
+            rmdir(file.dir, function (errRmdir)
+            {
+              if (err) {
+                console.log(stderr);
+                return deferred.reject(err);
+              }
 
-            var output = {
-              name: path.join(file.dir, file.name + '.appx'),
-              out: packagePath,
-              stdout: stdout,
-              stderr: stderr
-            };
-            
-            deferred.resolve(output);
+              if (errRmdir) {
+                console.log(errRmdir);
+              }
+
+              var output = {
+                name: path.join(file.dir, file.name + '.appx'),
+                out: packagePath,
+                stdout: stdout,
+                stderr: stderr
+              };
+
+              deferred.resolve(output);
+            });
           });
         }
       },
