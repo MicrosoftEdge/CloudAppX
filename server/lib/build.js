@@ -8,7 +8,6 @@ var os = require('os');
 var rmdir = require('rimraf');
 
 var defaultToolsFolder = 'appxsdk';
-var packageName = 'package.appx';
 
 function getappx(file) {
   var deferred = Q.defer();
