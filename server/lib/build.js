@@ -15,7 +15,11 @@ function getappx(file) {
   .then(makeappx)
   .then(function(result) {
     deferred.resolve(result);
+  })
+  .catch(function (err) {
+    deferred.reject(err);
   });
+
   return deferred.promise;
 }
 
