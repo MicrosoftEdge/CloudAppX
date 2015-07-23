@@ -4,6 +4,9 @@ var fs = require('fs');
 var multer = require('multer');
 var util = require('util');
 var Q = require('q');
+var rmdir = require('rimraf');
+var url = require('url');
+var path = require('path');
 
 var app = express();
 
@@ -17,6 +20,23 @@ app.use(cors(corsOptions));
 
 app.use(multer({dest: './uploads/'}));
 
+app.use('/output', function (req, res, next) {
+  req.on('end', function () {
+    var pathname = url.parse(req.url).pathname;
+    if (pathname) {
+      var packageDir = path.dirname(path.join(__dirname, 'output', pathname));
+      console.log('Deleting: ', packageDir);
+      rmdir(packageDir, function (err) {
+        if (err) {
+          console.log(err);
+        }
+      });
+    }
+  });
+  
+  next();
+})
+
 app.use('/output', express.static('output'));
 
 app.get('/v1/test', function(req, res) {
@@ -25,15 +45,15 @@ app.get('/v1/test', function(req, res) {
   res.send('Welcome to CloudAppX');
 });
 
-app.post('/v1/upload', function(req, res, next) {
+app.post('/v1/upload', function (req, res, next) {
   if (req.files) {
     console.log(util.inspect(req.files));
-    build.getappx(req.files).then(function(file) {
+    build.getappx(req.files).then(function (file) {
       res.send(file.out);
     });
   }
 });
-
+  
 function serve() {
   var deferred = Q.defer();
   var port = process.env.PORT || 8080;
