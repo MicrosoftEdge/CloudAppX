@@ -18,8 +18,6 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(multer({dest: './uploads/'}));
-
 app.use('/output', function (req, res, next) {
   req.on('end', function () {
     var pathname = url.parse(req.url).pathname;
@@ -45,7 +43,7 @@ app.get('/v1/test', function (req, res) {
   res.send('Welcome to CloudAppX');
 });
 
-app.post('/v1/upload', function (req, res, next) {
+app.post('/v1/upload', multer({ dest: './uploads/' }), function (req, res, next) {
   if (req.files) {
     console.log(util.inspect(req.files));
     build.getappx(req.files).then(
@@ -59,7 +57,7 @@ app.post('/v1/upload', function (req, res, next) {
   }
 });
 
-app.post('/v2/build', function (req, res) {
+app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
   console.log('Building package...');
   if (req.files) {
     console.log(util.inspect(req.files));
