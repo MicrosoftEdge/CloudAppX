@@ -33,13 +33,13 @@ app.use('/output', function (req, res, next) {
       });
     }
   });
-  
+
   next();
 })
 
 app.use('/output', express.static('output'));
 
-app.get('/v1/test', function(req, res) {
+app.get('/v1/test', function (req, res) {
   console.log(process.cwd());
   res.set('Content-Type', 'text/plain');
   res.send('Welcome to CloudAppX');
@@ -58,7 +58,12 @@ app.post('/v1/upload', function (req, res, next) {
     );
   }
 });
-  
+
+app.use(function (err, req, res, next) {
+  console.error('Unhandled exception processing the APPX package: ' + err);
+  res.status(500).send('There was an error generating the APPX package.');
+});
+
 function serve() {
   var deferred = Q.defer();
   var port = process.env.PORT || 8080;
@@ -72,9 +77,13 @@ function serve() {
   return deferred.promise;
 }
 
+process.on('uncaughtException', function (err) {
+  console.log('An unhandled exception occurred: ' + err);
+  process.exit(1);
+});
+
 if (process.env.WEBSITE_SITE_NAME || !module.parent) {
   serve();
 } else {
   module.exports = serve;
 }
-
