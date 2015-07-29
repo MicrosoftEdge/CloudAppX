@@ -12,12 +12,6 @@ var app = express();
 
 var build = require('./lib/build');
 
-var corsOptions = {
-  origin: 'http://localhost:3000'
-};
-
-app.use(cors(corsOptions));
-
 app.use('/output', function (req, res, next) {
   req.on('end', function () {
     var pathname = url.parse(req.url).pathname;
@@ -33,7 +27,7 @@ app.use('/output', function (req, res, next) {
   });
 
   next();
-})
+});
 
 app.use('/output', express.static('output'));
 
