@@ -7,7 +7,8 @@
     "url": ""
   },
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha test",
+    "start": "node ./server/server.js"
   },
   "browser": {
     "plugin": "./src/javascript/vendor/plugin.js"
