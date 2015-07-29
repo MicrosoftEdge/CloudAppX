@@ -59,6 +59,41 @@ app.post('/v1/upload', function (req, res, next) {
   }
 });
 
+app.post('/v2/build', function (req, res) {
+  console.log('Building package...');
+  if (req.files) {
+    console.log(util.inspect(req.files));
+    var filepath;
+    build.getappx(req.files)
+      .then(function (file) {
+        res.set('Content-type', 'application/octet-stream');
+        filepath = path.join(__dirname, file.out);
+        var reader = fs.createReadStream(filepath);
+        reader.pipe(res);
+        reader.on('end', function () {
+          console.log('Package download completed!');
+          res.status(201).end();
+        });
+      },
+      function (err) {
+        console.log('Error generating package: ' + err);
+      })
+      .fail(function (err) {
+        console.log('Package generation failure: ' + err);
+        res.status(500).send('APPX package generation failed.').end();
+      })
+      .finally(function () {
+        var packageDir = path.dirname(filepath);
+        rmdir(packageDir, function (err) {
+          if (err) {
+            return console.log('Error deleting generated package: ' + err);
+          }
+        });
+      })
+      .done();
+  }
+});
+
 app.use(function (err, req, res, next) {
   console.error('Unhandled exception processing the APPX package: ' + err);
   res.status(500).send('There was an error generating the APPX package.');
