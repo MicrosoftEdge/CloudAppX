@@ -12,43 +12,68 @@ var app = express();
 
 var build = require('./lib/build');
 
-app.use('/output', function (req, res, next) {
-  req.on('end', function () {
-    var pathname = url.parse(req.url).pathname;
-    if (pathname) {
-      var packageDir = path.dirname(path.join(__dirname, 'output', pathname));
-      console.log('Deleting: ', packageDir);
-      rmdir(packageDir, function (err) {
-        if (err) {
-          console.log(err);
-        }
-      });
+// API v1 has greater potential for leaving orphaned temporary files
+// and is disabled by default. To enable it, define an environment 
+// variable (or an appsetting in an Azure website) 
+//    ENABLE_V1_API = (true | yes | 1)
+function isV1ApiEnabled() {
+  var enableV1Api = process.env.ENABLE_V1_API;
+  if (enableV1Api) {
+    switch (enableV1Api.trim().toLowerCase()) {
+      case 'true': case 'yes': case '1': return true;
+      case 'false': case 'no': case '0': case null: return false;
+      default: return false;
     }
+  }
+
+  return false;
+}
+
+if (isV1ApiEnabled()) {
+  app.use('/output', function (req, res, next) {
+    req.on('end', function () {
+      var pathname = url.parse(req.url).pathname;
+      if (pathname) {
+        var packageDir = path.dirname(path.join(__dirname, 'output', pathname));
+        console.log('Deleting: ', packageDir);
+        rmdir(packageDir, function (err) {
+          if (err) {
+            console.log(err);
+          }
+        });
+      }
+    });
+
+    next();
   });
 
-  next();
-});
+  app.use('/output', express.static('output'));
 
-app.use('/output', express.static('output'));
+  app.get('/v1/test', function (req, res) {
+    console.log(process.cwd());
+    res.set('Content-Type', 'text/plain');
+    res.send('Welcome to CloudAppX');
+  });
 
-app.get('/v1/test', function (req, res) {
+  app.post('/v1/upload', multer({ dest: './uploads/' }), function (req, res, next) {
+    if (req.files) {
+      console.log(util.inspect(req.files));
+      build.getappx(req.files).then(
+        function (file) {
+          res.send(file.out);
+        },
+        function (err) {
+          res.status(500).send('APPX package generation failed.');
+        }
+      );
+    }
+  });
+}
+
+app.get('/v2/test', function (req, res) {
   console.log(process.cwd());
   res.set('Content-Type', 'text/plain');
   res.send('Welcome to CloudAppX');
-});
-
-app.post('/v1/upload', multer({ dest: './uploads/' }), function (req, res, next) {
-  if (req.files) {
-    console.log(util.inspect(req.files));
-    build.getappx(req.files).then(
-      function (file) {
-        res.send(file.out);
-      },
-      function (err) {
-        res.status(500).send('APPX package generation failed.');
-      }
-    );
-  }
 });
 
 app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
