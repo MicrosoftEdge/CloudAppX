@@ -137,16 +137,16 @@ function makeappx(file) {
 
 function getContents(file) {
   var deferred = Q.defer();
-  var outputDir = path.join('output', file.name.slice(0,-4));
+  var outputDir = path.join('output', path.basename(file.name, '.' + file.extension));
   fs.createReadStream(file.path)
     .pipe(unzip2.Extract({ path: outputDir }))
-    .on('close', function() {
-      var name = file.originalname.slice(0,-4);
+    .on('close', function () {
       fs.unlink(file.path, function (err) {
         if (err) {
           console.log(err.message);
         }
 
+        var name = path.basename(file.originalname, '.' + file.extension);
         deferred.resolve({
           name: name,
           dir: path.join(outputDir, name),
@@ -154,8 +154,8 @@ function getContents(file) {
         });
       });
     });
+
   return deferred.promise;
 }
-
 
 module.exports = {getappx: getappx, makeappx: makeappx};
