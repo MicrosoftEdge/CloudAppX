@@ -91,6 +91,10 @@ app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
           console.log('Package download completed.');
           res.status(201).end();
         });
+        reader.on('error', function (err) {
+          console.log('Error streaming package contents: ' + err);
+          res.status(500).send('APPX package download failed.').end();
+        });
       },
       function (err) {
         console.log('Error generating package: ' + err);
