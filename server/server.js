@@ -83,12 +83,12 @@ app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
     var filepath;
     build.getappx(req.files)
       .then(function (file) {
+        filepath = file.out;
         res.set('Content-type', 'application/octet-stream');
-        filepath = path.join(__dirname, file.out);
         var reader = fs.createReadStream(filepath);
         reader.pipe(res);
         reader.on('end', function () {
-          console.log('Package download completed!');
+          console.log('Package download completed.');
           res.status(201).end();
         });
       },
@@ -100,12 +100,14 @@ app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
         res.status(500).send('APPX package generation failed.').end();
       })
       .finally(function () {
-        var packageDir = path.dirname(filepath);
-        rmdir(packageDir, function (err) {
-          if (err) {
-            return console.log('Error deleting generated package: ' + err);
-          }
-        });
+        if (filepath) {
+          var packageDir = path.dirname(filepath);
+          rmdir(packageDir, function (err) {
+            if (err) {
+              return console.log('Error deleting generated package: ' + err);
+            }
+          });
+        }
       })
       .done();
   }
