@@ -11,14 +11,20 @@ var defaultToolsFolder = 'appxsdk';
 
 function getappx(file) {
   var deferred = Q.defer();
-  getContents(file.xml)
-  .then(makeappx)
-  .then(function(result) {
-    deferred.resolve(result);
-  })
-  .catch(function (err) {
-    deferred.reject(err);
-  });
+  Q.resolve(file.xml)
+      .then(getContents)
+      .then(makeappx)
+      .then(deleteContents)
+      .then(function (result) {
+        deferred.resolve(result);
+      },
+        function (err) {
+          deferred.reject(err);
+        })
+      .catch(function (err) {
+        deferred.reject(err);
+      })
+      .done();
 
   return deferred.promise;
 }
@@ -26,7 +32,7 @@ function getappx(file) {
 // search for local installation of Windows 10 Kit in the Windows registry
 function getWindowsKitPath(toolname) {
   var deferred = Q.defer();
-  
+
   var cmdLine = 'powershell -Command "Get-ItemProperty \\"HKLM:\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots\\" -Name KitsRoot10 | Select-Object -ExpandProperty KitsRoot10"';
   exec(cmdLine, function (err, stdout, stderr) {
     var notFound = new Error('Cannot find a local installation of the Windows 10 Kit Tools.');
@@ -43,16 +49,16 @@ function getWindowsKitPath(toolname) {
       return deferred.reject(notFound);
     });
   });
-  
+
   return deferred.promise;
 }
 
 // search for installation of Windows 10 tools in app's subfolder
 function getLocalToolsPath(toolname) {
   var deferred = Q.defer();
-  
+
   // test WEBSITE_SITE_NAME environment variable to determine if running in Azure
-  var toolPath = process.env.WEBSITE_SITE_NAME ? 
+  var toolPath = process.env.WEBSITE_SITE_NAME ?
                   path.join(process.env.HOME_EXPANDED, 'site', 'wwwroot', defaultToolsFolder, toolname) :
                   path.join(path.dirname(require.main.filename), defaultToolsFolder, toolname);
 
@@ -60,7 +66,7 @@ function getLocalToolsPath(toolname) {
     if (!exists) {
       return deferred.reject(new Error('Unable to locate Windows 10 Kit Tools in app folder.'));
     }
-    
+
     return deferred.resolve(toolPath);
   });
 
@@ -102,26 +108,19 @@ function makeappx(file) {
           console.log(cmdLine);
           exec(cmdLine, function (err, stdout, stderr) {
             console.log(stdout);
-            rmdir(file.dir, function (errRmdir)
-            {
-              if (err) {
-                console.log(stderr);
-                return deferred.reject(err);
-              }
+            if (err) {
+              console.log(stderr);
+              return deferred.reject(err);
+            }
 
-              if (errRmdir) {
-                console.log(errRmdir);
-              }
+            var output = {
+              dir: file.dir,
+              out: packagePath,
+              stdout: stdout,
+              stderr: stderr
+            };
 
-              var output = {
-                name: path.join(file.dir, file.name + '.appx'),
-                out: packagePath,
-                stdout: stdout,
-                stderr: stderr
-              };
-
-              deferred.resolve(output);
-            });
+            deferred.resolve(output);
           });
         }
       },
@@ -131,9 +130,9 @@ function makeappx(file) {
   } else {
     deferred.reject(new Error('Cannot generate a Windows Store package in the current platform.'));
   }
-  
+
   return deferred.promise;
-};
+}
 
 function getContents(file) {
   var deferred = Q.defer();
@@ -158,4 +157,18 @@ function getContents(file) {
   return deferred.promise;
 }
 
-module.exports = {getappx: getappx, makeappx: makeappx};
+function deleteContents(file) {
+  var deferred = Q.defer();
+  rmdir(file.dir, function (err) {
+    if (err) {
+      console.log('Error deleting output directory...' + err);
+      return deferred.reject(err);
+    }
+
+    deferred.resolve(file);
+  });
+
+  return deferred.promise;
+}
+
+module.exports = { getappx: getappx, makeappx: makeappx };
