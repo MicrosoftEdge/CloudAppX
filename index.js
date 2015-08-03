@@ -1,3 +1,3 @@
 var build = require('./server/lib/build.js');
 
-module.exports = { makeappx : build.makeappx };
+module.exports = { makeAppx : build.makeAppx };
