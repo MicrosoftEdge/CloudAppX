@@ -1,12 +1,12 @@
-var express = require('express');
-var cors = require('cors');
-var fs = require('fs');
-var multer = require('multer');
-var util = require('util');
-var Q = require('q');
-var rmdir = require('rimraf');
-var url = require('url');
-var path = require('path');
+var express = require('express'),
+    cors = require('cors'),
+    fs = require('fs'),
+    multer = require('multer'),
+    util = require('util'),
+    Q = require('q'),
+    rmdir = Q.nbind(require('rimraf')),
+    url = require('url'),
+    path = require('path');
 
 var app = express();
 
@@ -58,14 +58,13 @@ if (isV1ApiEnabled()) {
   app.post('/v1/upload', multer({ dest: './uploads/' }), function (req, res, next) {
     if (req.files) {
       console.log(util.inspect(req.files));
-      build.getappx(req.files).then(
-        function (file) {
+      build.getAppx(req.files)
+        .then(function (file) {
           res.send(file.out);
-        },
-        function (err) {
+        })
+        .catch(function (err) {
           res.status(500).send('APPX package generation failed.');
-        }
-      );
+        });
     }
   });
 }
@@ -81,12 +80,11 @@ app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
   if (req.files) {
     console.log(util.inspect(req.files));
     var filepath;
-    build.getappx(req.files)
+    build.getAppx(req.files)
       .then(function (file) {
         filepath = file.out;
         res.set('Content-type', 'application/octet-stream');
         var reader = fs.createReadStream(filepath);
-        reader.pipe(res);
         reader.on('end', function () {
           console.log('Package download completed.');
           res.status(201).end();
@@ -95,22 +93,19 @@ app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
           console.log('Error streaming package contents: ' + err);
           res.status(500).send('APPX package download failed.').end();
         });
-      },
-      function (err) {
-        console.log('Error generating package: ' + err);
+        reader.pipe(res);
       })
-      .fail(function (err) {
+      .catch(function (err) {
         console.log('Package generation failure: ' + err);
-        res.status(500).send('APPX package generation failed.').end();
+        res.status(500).send('APPX package generation failed. ' + err).end();
       })
       .finally(function () {
         if (filepath) {
           var packageDir = path.dirname(filepath);
-          rmdir(packageDir, function (err) {
-            if (err) {
-              return console.log('Error deleting generated package: ' + err);
-            }
-          });
+          rmdir(packageDir)
+            .catch(function (err) {
+              console.log('Error deleting generated package: ' + err);
+            });
         }
       })
       .done();
@@ -132,6 +127,7 @@ function serve() {
     }
     deferred.resolve(port);
   });
+
   return deferred.promise;
 }
 
