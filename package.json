@@ -1,24 +1,15 @@
 {
-  "name": "gulp-appx",
-  "version": "0.0.3",
-  "description": "Gulp build system for Windows 10 Apps",
+  "name": "cloudappx-server",
+  "version": "0.0.4",
+  "description": "MakeAppX in the Cloud",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/alxlu/CloudAppX"
   },
   "scripts": {
     "test": "mocha test",
     "start": "node ./server/server.js"
   },
-  "browser": {
-    "plugin": "./src/javascript/vendor/plugin.js"
-  },
-  "browserify": {
-    "transform": [
-      "browserify-shim"
-    ]
-  },
-  "browserify-shim": {},
   "devDependencies": {
     "chai": "^3.0.0",
     "cloudappx": "*",
@@ -31,6 +22,6 @@
     "q": "^1.4.1",
     "unzip": "^0.1.11",
     "unzip2": "^0.2.5",
-	"rimraf": "^2.4.2"
+    "rimraf": "^2.4.2"
   }
 }
