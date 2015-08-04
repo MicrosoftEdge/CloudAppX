@@ -1,13 +1,14 @@
 {
   "name": "gulp-appx",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Gulp build system for Windows 10 Apps",
   "repository": {
     "type": "git",
     "url": ""
   },
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha test",
+    "start": "node ./server/server.js"
   },
   "browser": {
     "plugin": "./src/javascript/vendor/plugin.js"
@@ -29,6 +30,7 @@
     "multer": "^0.1.8",
     "q": "^1.4.1",
     "unzip": "^0.1.11",
-    "unzip2": "^0.2.5"
+    "unzip2": "^0.2.5",
+	"rimraf": "^2.4.2"
   }
 }

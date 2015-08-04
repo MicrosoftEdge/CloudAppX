@@ -9,6 +9,7 @@ var expect = require('chai').expect;
 describe('environment', function() {
   it ('has the proper environment variable set', function() {
     expect(process.env.CLOUDAPPX_SERVER).to.equal('http://localhost:8080');
+    expect(process.env.ENABLE_V1_API).to.equal('true');
   });
 });
 describe('end to end', function() {
