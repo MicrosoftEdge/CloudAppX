@@ -4,7 +4,7 @@ var express = require('express'),
     multer = require('multer'),
     util = require('util'),
     Q = require('q'),
-    rmdir = Q.nbind(require('rimraf')),
+    rmdir = Q.nfbind(require('rimraf')),
     url = require('url'),
     path = require('path');
 

@@ -5,9 +5,10 @@
     path = require('path'),
     unzip2 = require('unzip2'),
     os = require('os'),
-    rmdir = Q.nbind(require('rimraf')),
-    execute = Q.nbind(exec),
-    fsStat = Q.nfbind(fs.stat);
+    rmdir = Q.nfbind(require('rimraf')),
+    execute = Q.nfbind(exec),
+    fsStat = Q.nfbind(fs.stat),
+    readdir = Q.nfbind(fs.readdir);
 
 var defaultToolsFolder = 'appxsdk';
 
@@ -16,11 +17,11 @@ function getAppx(file) {
   
   return Q(file.xml)
     .then(getContents)
-    .then(function (file) { return ctx = file; })
+    .tap(function (file) { ctx = file; })
     .then(makeAppx)
     .finally(function () {
       if (ctx) {
-        deleteContents(ctx.dir);
+        return deleteContents(ctx);
       }
     });
 }
@@ -117,10 +118,21 @@ function getContents(file) {
   return deferred.promise;
 }
 
-function deleteContents(dir) {
-  return rmdir(dir)
-          .catch(function (err) { 
+function deleteContents(ctx) {
+  return rmdir(ctx.dir)
+          .catch(function (err) {
             console.log('Error deleting content folder: ' + err);
+          })
+          .then(function () {
+            return readdir(ctx.out);
+          })
+          .then(function (files) {
+            if (files.length === 0) {
+              return rmdir(ctx.out)
+            }
+          })
+          .catch(function (err) {
+            console.log('Error deleting output folder: ' + err);
           });
 }
 
