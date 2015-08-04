@@ -5,6 +5,4 @@ node_js:
   - "0.10"
   - "iojs"
 env:
-  - CLOUDAPPX_SERVER="http://localhost:8080"
-  - ENABLE_V1_API=true
-  
+  - CLOUDAPPX_SERVER="http://localhost:8080" ENABLE_V1_API=true
