@@ -7,21 +7,35 @@
     "url": "https://github.com/alxlu/CloudAppX"
   },
   "scripts": {
-    "test": "mocha test",
-    "start": "node ./server/server.js"
+    "test": "babel-node node_modules/.bin/babel-istanbul cover node_modules/.bin/_mocha",
+    "lint": "eslint ./src",
+    "watch": "babel ./src --out-dir ./dist --watch --source-maps",
+    "start": "babel ./src --out-dir ./dist && node ./dist/index.js"
   },
   "devDependencies": {
-    "chai": "^3.0.0",
+    "babel-cli": "^6.1.18",
+    "babel-eslint": "^4.1.6",
+    "babel-istanbul": "^0.6.0",
+    "babel-preset-es2015": "^6.1.18",
+    "babel-preset-stage-0": "^6.3.13",
+    "babel-register": "^6.3.13",
+    "chai": "^3.4.1",
     "cloudappx": "*",
-    "mocha": "*"
+    "eslint": "^1.9.0",
+    "eslint-config-standard": "^4.4.0",
+    "eslint-plugin-standard": "^1.3.1",
+    "mocha": "^2.3.4"
   },
   "dependencies": {
+    "babel-polyfill": "^6.3.14",
     "cors": "^2.7.1",
+    "del": "^2.2.0",
+    "denodeify": "^1.2.1",
     "express": "^4.13.0",
     "multer": "^0.1.8",
     "q": "^1.4.1",
+    "rimraf": "^2.4.2",
     "unzip": "^0.1.11",
-    "unzip2": "^0.2.5",
-    "rimraf": "^2.4.2"
+    "unzip2": "^0.2.5"
   }
 }
