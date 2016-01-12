@@ -13,8 +13,8 @@ var app = express();
 var build = require('./lib/build');
 
 // API v1 has greater potential for leaving orphaned temporary files
-// and is disabled by default. To enable it, define an environment 
-// variable (or an appsetting in an Azure website) 
+// and is disabled by default. To enable it, define an environment
+// variable (or an appsetting in an Azure website)
 //    ENABLE_V1_API = (true | yes | 1)
 function isV1ApiEnabled() {
   var enableV1Api = process.env.ENABLE_V1_API;
@@ -75,12 +75,11 @@ app.get('/v2/test', function (req, res) {
   res.send('Welcome to CloudAppX');
 });
 
-app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
-  console.log('Building package...');
+const createAppX = (req, res, shouldsign) => {
   if (req.files) {
     console.log(util.inspect(req.files));
     var filepath;
-    build.getAppx(req.files)
+    build.getAppx(req.files, shouldsign)
       .then(function (file) {
         filepath = file.out;
         res.set('Content-type', 'application/octet-stream');
@@ -109,8 +108,11 @@ app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) {
         }
       })
       .done();
-  }
-});
+    }
+};
+
+app.post('/v2/buildsigned', multer({ dest: './uploads/' }), (req, res) => createAppX(req, res, false));
+app.post('/v2/build', multer({ dest: './uploads/' }), (req, res) => createAppX(req, res, true));
 
 app.use(function (err, req, res, next) {
   console.error('Unhandled exception processing the APPX package: ' + err);

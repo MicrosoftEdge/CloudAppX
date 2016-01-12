@@ -12,13 +12,12 @@
 
 var defaultToolsFolder = 'appxsdk';
 
-function getAppx(file) {
+function getAppx(file, shouldsign) {
   var ctx;
-  
   return Q(file.xml)
     .then(getContents)
     .tap(function (file) { ctx = file; })
-    .then(makeAppx)
+    .then(file => makeAppx(file, shouldsign))
     .finally(function () {
       if (ctx) {
         return deleteContents(ctx);
@@ -42,12 +41,12 @@ function getWindowsKitPath(toolname) {
 
 // search for local installation of Windows 10 tools in app's subfolder
 function getLocalToolsPath(toolName) {
-  // test WEBSITE_SITE_NAME environment variable to determine if the service is running in Azure, which  
+  // test WEBSITE_SITE_NAME environment variable to determine if the service is running in Azure, which
   // requires mapping the tool's location to its physical path using the %HOME_EXPANDED% environment variable
   var toolPath = process.env.WEBSITE_SITE_NAME ?
                   path.join(process.env.HOME_EXPANDED, 'site', 'wwwroot', defaultToolsFolder, toolName) :
                   path.join(path.dirname(require.main.filename), defaultToolsFolder, toolName);
-  
+
   return fsStat(toolPath)
     .thenResolve(toolPath)
     .catch(function (err) {
@@ -55,32 +54,49 @@ function getLocalToolsPath(toolName) {
     });
 }
 
-function makeAppx(file) {
+function makeAppx(file, shouldsign) {
   if (os.platform() !== 'win32') {
     return Q.reject(new Error('Cannot generate a Windows Store package in the current platform.'));
   }
-  
-  var toolName = 'makeappx.exe';
-  return getLocalToolsPath(toolName)
-          .catch(function (err) {
-            return getWindowsKitPath(toolName);
-          })
+
+  var makeappxName = 'makeappx.exe';
+  const signtoolName = 'signtool.exe';
+  const makeappxPath = getLocalToolsPath(makeappxName).catch(err => getWindowsKitPath(makeappxName));
+  const signtoolPath = getLocalToolsPath(signtoolName).catch(err => getWindowsKitPath(signtoolName));
+
+  return Q.all([makeappxPath, signtoolPath])
           .then(function (toolPath) {
+            console.log(toolPath);
+            const makeappx = toolPath[0];
+            const signtool = toolPath[1];
             var packagePath = path.join(file.out, file.name + '.appx');
-            cmdLine = '"' + toolPath + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
+            cmdLine = '"' + makeappx + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
             var deferred = Q.defer();
-            exec(cmdLine, function (err, stdout, stderr) {             
+            exec(cmdLine, function (err, stdout, stderr) {
               if (err) {
                 var errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
                 return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
               }
-      
-              deferred.resolve({
-                dir: file.dir,
-                out: packagePath,
-                stdout: stdout,
-                stderr: stderr
-              });
+
+              const certDir = path.join(__dirname, '../cert/cert.pfx');
+              var sign = 'rem'; // according to raymondc this shoud do nothing: http://stackoverflow.com/a/7191952
+
+              if (shouldsign) {
+                sign = '"' + signtool + '" sign /fd SHA256 /f ' + certDir + ' /v ' + packagePath;
+              }
+              exec(sign, function(err, stdout, stderr) {
+                if (err) {
+                  console.log(err);
+                  //var errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
+                  return deferred.reject(err);
+                }
+                deferred.resolve({
+                  dir: file.dir,
+                  out: packagePath,
+                  stdout: stdout,
+                  stderr: stderr
+                });
+              })
             });
 
             return deferred.promise;
@@ -101,7 +117,7 @@ function getContents(file) {
         if (err) {
           console.log(err);
         }
-      
+
         var name = path.basename(file.originalname, '.' + file.extension);
         deferred.resolve({
           name: name,
@@ -114,7 +130,7 @@ function getContents(file) {
       console.log(err);
       deferred.reject(new Error('Failed to unpack the uploaded content archive.'));
     });
-  
+
   return deferred.promise;
 }
 
