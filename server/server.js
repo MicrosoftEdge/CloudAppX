@@ -111,8 +111,8 @@ const createAppX = (req, res, shouldsign) => {
     }
 };
 
-app.post('/v2/buildsigned', multer({ dest: './uploads/' }), (req, res) => createAppX(req, res, false));
-app.post('/v2/build', multer({ dest: './uploads/' }), (req, res) => createAppX(req, res, true));
+app.post('/v2/buildsigned', multer({ dest: './uploads/' }), (req, res) => createAppX(req, res, true));
+app.post('/v2/build', multer({ dest: './uploads/' }), (req, res) => createAppX(req, res, false));
 
 app.use(function (err, req, res, next) {
   console.error('Unhandled exception processing the APPX package: ' + err);
