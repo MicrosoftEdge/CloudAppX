@@ -122,7 +122,7 @@ function makePri(projectRoot, outputFolder) {
         var deferred = Q.defer();
         var configPath = path.resolve(__dirname, '..', 'assets', 'priconfig.xml');
         var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
-        exec(cmdLine, function (err, stdout, stderr) {             
+        exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {             
           if (err) {
             return deferred.reject(err);
           }
@@ -154,7 +154,7 @@ function makeAppx(fileInfo) {
     var appxPackagePath = path.join(fileInfo.out, fileInfo.name + '.appx');
     var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
     var deferred = Q.defer();
-    exec(cmdLine, function (err, stdout, stderr) {
+    exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
       if (err) {
         var errmsg;
         var toolErrors = stdout.match(/error:.*/g);
