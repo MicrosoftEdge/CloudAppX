@@ -12,18 +12,32 @@
 
 var defaultToolsFolder = 'appxsdk';
 
-function getAppx(file) {
-  var ctx;
-  
-  return Q(file.xml)
-    .then(getContents)
-    .tap(function (file) { ctx = file; })
-    .then(makeAppx)
+function getAppx(file, runMakePri) {
+  // unzip package content
+  return Q.fcall(getContents, file.xml).then(function (fileInfo) {    
+    // optionally compile the app resources
+    return (runMakePri ? Q.fcall(compileResources, fileInfo) : Q())
+    // generate APPX file
+    .then(function () {
+      return makeAppx(fileInfo); 
+    })
     .finally(function () {
-      if (ctx) {
-        return deleteContents(ctx);
-      }
+      // clean up package contents
+      return deleteContents(fileInfo);
     });
+  })
+}
+
+function getPri(file) {
+  // unzip package content
+  return Q.fcall(getContents, file.xml).then(function (fileInfo) {
+    // generate PRI file
+    return Q.fcall(makePri, fileInfo.dir, fileInfo.out)
+    // clean up package contents
+    .finally(function () {
+      return deleteContents(fileInfo);
+    });
+  })
 }
 
 // search for local installation of Windows 10 Kit in the Windows registry
@@ -51,6 +65,58 @@ function getLocalToolsPath(toolName) {
     .catch(function (err) {
       return Q.reject(new Error('Cannot find Windows 10 Kit Tools in the app folder (' + defaultToolsFolder + ').'));
     });
+}
+
+// compiles resources to generate a PRI file for the app package  
+function compileResources(fileInfo) {
+  // run MakePri
+  return Q.fcall(makePri, fileInfo.dir, fileInfo.out, true).then(function (priInfo) { 
+    // move generated PRI file into package folder
+    var targetPath = path.join(fileInfo.dir, path.basename(priInfo.outputFile));
+    return Q.nfcall(fs.rename, priInfo.outputFile, targetPath);
+  })
+}
+
+// generates a resource index file (PRI)
+function makePri(projectRoot, outputFolder) {
+  if (os.platform() !== 'win32') {
+    return Q.reject(new Error('Cannot compile Windows resources in the current platform.'));
+  }
+  
+  var toolName = 'makepri.exe';
+  var priFileName = 'resources.pri';
+  var outputFile = path.join(outputFolder, priFileName);
+  return Q.nfcall(fs.unlink, outputFile).catch(function (err) {
+    // delete existing file and report any error other than not found
+    if (err.code !== 'ENOENT') {
+      throw err;
+    }    
+  })
+  .then (function () {
+    return getLocalToolsPath(toolName).catch(function (err) {
+      return getWindowsKitPath(toolName);
+    })
+    .then(function (toolPath) {
+      var manifestPath = path.join(projectRoot, 'appxmanifest.xml');
+      var deferred = Q.defer();
+      var configPath = path.resolve(__dirname, '..', 'assets', 'priconfig.xml');
+      var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '"';
+      exec(cmdLine, function (err, stdout, stderr) {             
+        if (err) {
+          return deferred.reject(err);
+        }
+
+        deferred.resolve({
+          projectRoot: projectRoot,
+          outputFile: outputFile,
+          stdout: stdout,
+          stderr: stderr
+        });
+      });
+
+      return deferred.promise;
+    });
+  })
 }
 
 function makeAppx(file) {
@@ -134,4 +200,4 @@ function deleteContents(ctx) {
           });
 }
 
-module.exports = { getAppx: getAppx, makeAppx: makeAppx };
+module.exports = { getAppx: getAppx, getPri: getPri, makeAppx: makeAppx, makePri: makePri };
