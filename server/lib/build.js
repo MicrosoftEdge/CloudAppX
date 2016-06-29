@@ -141,36 +141,39 @@ function makePri(projectRoot, outputFolder) {
   })
 }
 
-function makeAppx(file) {
+function makeAppx(fileInfo) {
   if (os.platform() !== 'win32') {
     return Q.reject(new Error('Cannot generate a Windows Store package in the current platform.'));
   }
   
   var toolName = 'makeappx.exe';
-  return getLocalToolsPath(toolName)
-          .catch(function (err) {
-            return getWindowsKitPath(toolName);
-          })
-          .then(function (toolPath) {
-            var packagePath = path.join(file.out, file.name + '.appx');
-            cmdLine = '"' + toolPath + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
-            var deferred = Q.defer();
-            exec(cmdLine, function (err, stdout, stderr) {             
-              if (err) {
-                var errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
-                return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
-              }
-      
-              deferred.resolve({
-                dir: file.dir,
-                out: packagePath,
-                stdout: stdout,
-                stderr: stderr
-              });
-            });
+  return getLocalToolsPath(toolName).catch(function (err) {
+    return getWindowsKitPath(toolName);
+  })
+  .then(function (toolPath) {
+    var appxPackagePath = path.join(fileInfo.out, fileInfo.name + '.appx');
+    var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
+    var deferred = Q.defer();
+    exec(cmdLine, function (err, stdout, stderr) {
+      if (err) {
+        var errmsg;
+        var toolErrors = stdout.match(/error:.*/g);
+        if (toolErrors) {
+          errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
+        }
+        return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
+      }
 
-            return deferred.promise;
-          });
+      deferred.resolve({
+        dir: fileInfo.dir,
+        out: appxPackagePath,
+        stdout: stdout,
+        stderr: stderr
+      });
+    });
+
+    return deferred.promise;
+  });
 }
 
 function getContents(file) {
