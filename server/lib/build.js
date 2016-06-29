@@ -28,16 +28,14 @@ function getAppx(file) {
 
 // search for local installation of Windows 10 Kit in the Windows registry
 function getWindowsKitPath(toolname) {
-  var cmdLine = 'powershell -Command "Get-ItemProperty \\"HKLM:\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots\\" -Name KitsRoot10 | Select-Object -ExpandProperty KitsRoot10"';
-  return execute(cmdLine)
-    .then(function (args) {
-      var toolPath = path.resolve(args[0].replace(/[\n\r]/g, ''), 'bin', os.arch(), toolname);
-      return fsStat(toolPath)
-                .thenResolve(toolPath);
-    })
-    .catch(function (err) {
-      return Q.reject(new Error('Cannot find the Windows 10 SDK tools.'));
-    });
+  var cmdLine = 'powershell -noprofile -noninteractive -Command "Get-ItemProperty \\"HKLM:\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots\\" -Name KitsRoot10 | Select-Object -ExpandProperty KitsRoot10"';
+  return execute(cmdLine).then(function (args) {
+    var toolPath = path.resolve(args[0].replace(/[\n\r]/g, ''), 'bin', os.arch(), toolname);
+    return fsStat(toolPath).thenResolve(toolPath);
+  })
+  .catch(function (err) {
+    return Q.reject(new Error('Cannot find the Windows 10 SDK tools.'));
+  });
 }
 
 // search for local installation of Windows 10 tools in app's subfolder
