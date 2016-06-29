@@ -1,7 +1,6 @@
 ﻿var fs = require('fs'),
     Q = require('q'),
     exec = require('child_process').exec,
-    util = require('util'),
     path = require('path'),
     unzip2 = require('unzip2'),
     os = require('os'),
@@ -207,22 +206,21 @@ function getContents(file) {
   return deferred.promise;
 }
 
-function deleteContents(ctx) {
-  return rmdir(ctx.dir)
-          .catch(function (err) {
-            console.log('Error deleting content folder: ' + err);
-          })
-          .then(function () {
-            return readdir(ctx.out);
-          })
-          .then(function (files) {
-            if (files.length === 0) {
-              return rmdir(ctx.out)
-            }
-          })
-          .catch(function (err) {
-            console.log('Error deleting output folder: ' + err);
-          });
+function deleteContents(fileInfo) {
+  return rmdir(fileInfo.dir).catch(function (err) {
+    console.log('Error deleting content folder: ' + err);
+  })
+  .then(function () {
+    return readdir(fileInfo.out);
+  })
+  .then(function (files) {
+    if (files.length === 0) {
+      return rmdir(fileInfo.out)
+    }
+  })
+  .catch(function (err) {
+    console.log('Error deleting output folder: ' + err);
+  });
 }
 
 module.exports = { getAppx: getAppx, getPri: getPri, makeAppx: makeAppx, makePri: makePri };
