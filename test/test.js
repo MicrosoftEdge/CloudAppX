@@ -13,6 +13,7 @@ describe('environment', function() {
   });
 });
 describe('end to end', function() {
+  this.timeout(10000);
   before(function(done) {
     cloudappx_server().then(function() {
       cloudappx.cloudappx(path.join(__dirname, 'assets/testpkg')).then(done);
