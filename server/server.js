@@ -1,5 +1,4 @@
 var express = require('express'),
-    cors = require('cors'),
     fs = require('fs'),
     multer = require('multer'),
     util = require('util'),
