@@ -1,7 +1,6 @@
 ﻿var fs = require('fs'),
     Q = require('q'),
     exec = require('child_process').exec,
-    util = require('util'),
     path = require('path'),
     unzip2 = require('unzip2'),
     os = require('os'),
@@ -12,32 +11,44 @@
 
 var defaultToolsFolder = 'appxsdk';
 
-function getAppx(file) {
-  var ctx;
-  
-  return Q(file.xml)
-    .then(getContents)
-    .tap(function (file) { ctx = file; })
-    .then(makeAppx)
+function getAppx(file, runMakePri) {
+  // unzip package content
+  return Q.fcall(getContents, file.xml).then(function (fileInfo) {    
+    // optionally compile the app resources
+    return (runMakePri ? Q.fcall(compileResources, fileInfo) : Q())
+    // generate APPX file
+    .then(function () {
+      return makeAppx(fileInfo); 
+    })
     .finally(function () {
-      if (ctx) {
-        return deleteContents(ctx);
-      }
+      // clean up package contents
+      return deleteContents(fileInfo);
     });
+  })
+}
+
+function getPri(file) {
+  // unzip package content
+  return Q.fcall(getContents, file.xml).then(function (fileInfo) {
+    // generate PRI file
+    return Q.fcall(makePri, fileInfo.dir, fileInfo.out)
+    // clean up package contents
+    .finally(function () {
+      return deleteContents(fileInfo);
+    });
+  })
 }
 
 // search for local installation of Windows 10 Kit in the Windows registry
 function getWindowsKitPath(toolname) {
-  var cmdLine = 'powershell -Command "Get-ItemProperty \\"HKLM:\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots\\" -Name KitsRoot10 | Select-Object -ExpandProperty KitsRoot10"';
-  return execute(cmdLine)
-    .then(function (args) {
-      var toolPath = path.resolve(args[0].replace(/[\n\r]/g, ''), 'bin', os.arch(), toolname);
-      return fsStat(toolPath)
-                .thenResolve(toolPath);
-    })
-    .catch(function (err) {
-      return Q.reject(new Error('Cannot find the Windows 10 SDK tools.'));
-    });
+  var cmdLine = 'powershell -noprofile -noninteractive -Command "Get-ItemProperty \\"HKLM:\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots\\" -Name KitsRoot10 | Select-Object -ExpandProperty KitsRoot10"';
+  return execute(cmdLine).then(function (args) {
+    var toolPath = path.resolve(args[0].replace(/[\n\r]/g, ''), 'bin', os.arch(), toolname);
+    return fsStat(toolPath).thenResolve(toolPath);
+  })
+  .catch(function (err) {
+    return Q.reject(new Error('Cannot find the Windows 10 SDK tools.'));
+  });
 }
 
 // search for local installation of Windows 10 tools in app's subfolder
@@ -55,36 +66,113 @@ function getLocalToolsPath(toolName) {
     });
 }
 
-function makeAppx(file) {
+// reads an app manifest and returns the package identity
+// see https://msdn.microsoft.com/en-us/library/windows/apps/br211441.aspx
+function getPackageIdentity(manifestPath) {
+  // defines a globally unique identifier for a package
+  var identityElement = /<Identity\s+[^>]+\>/;
+
+  // A string between 3 and 50 characters in length that consists of alpha-numeric, period, and dash characters
+  var nameAttribute = /Name="([A-Za-z0-9\-\.]+?)"/;
+
+  return Q.nfcall(fs.readFile, manifestPath).then(function (data) {
+    var identityMatch = data.toString().match(identityElement);
+    if (identityMatch) {
+      var nameMatch = identityMatch[0].match(nameAttribute);
+      if (nameMatch) {
+        return nameMatch[1];
+      }
+    }
+  });
+}
+
+// compiles resources to generate a PRI file for the app package  
+function compileResources(fileInfo) {
+  // run MakePri
+  return Q.fcall(makePri, fileInfo.dir, fileInfo.out, true).then(function (priInfo) { 
+    // move generated PRI file into package folder
+    var targetPath = path.join(fileInfo.dir, path.basename(priInfo.outputFile));
+    return Q.nfcall(fs.rename, priInfo.outputFile, targetPath);
+  })
+}
+
+// generates a resource index file (PRI)
+function makePri(projectRoot, outputFolder) {
+  if (os.platform() !== 'win32') {
+    return Q.reject(new Error('Cannot compile Windows resources in the current platform.'));
+  }
+  
+  var toolName = 'makepri.exe';
+  var priFileName = 'resources.pri';
+  var outputFile = path.join(outputFolder, priFileName);
+  return Q.nfcall(fs.unlink, outputFile).catch(function (err) {
+    // delete existing file and report any error other than not found
+    if (err.code !== 'ENOENT') {
+      throw err;
+    }    
+  })
+  .then (function () {
+    return getLocalToolsPath(toolName).catch(function (err) {
+      return getWindowsKitPath(toolName);
+    })
+    .then(function (toolPath) {
+      var manifestPath = path.join(projectRoot, 'appxmanifest.xml');
+      return getPackageIdentity(manifestPath).then(function (packageIdentity) {
+        var deferred = Q.defer();
+        var configPath = path.resolve(__dirname, '..', 'assets', 'priconfig.xml');
+        var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
+        exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {             
+          if (err) {
+            return deferred.reject(err);
+          }
+
+          deferred.resolve({
+            projectRoot: projectRoot,
+            outputFile: outputFile,
+            stdout: stdout,
+            stderr: stderr
+          });
+        });
+
+        return deferred.promise;
+      });
+    });
+  })
+}
+
+function makeAppx(fileInfo) {
   if (os.platform() !== 'win32') {
     return Q.reject(new Error('Cannot generate a Windows Store package in the current platform.'));
   }
   
   var toolName = 'makeappx.exe';
-  return getLocalToolsPath(toolName)
-          .catch(function (err) {
-            return getWindowsKitPath(toolName);
-          })
-          .then(function (toolPath) {
-            var packagePath = path.join(file.out, file.name + '.appx');
-            cmdLine = '"' + toolPath + '" pack /o /d ' + file.dir + ' /p ' + packagePath + ' /l';
-            var deferred = Q.defer();
-            exec(cmdLine, function (err, stdout, stderr) {             
-              if (err) {
-                var errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
-                return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
-              }
-      
-              deferred.resolve({
-                dir: file.dir,
-                out: packagePath,
-                stdout: stdout,
-                stderr: stderr
-              });
-            });
+  return getLocalToolsPath(toolName).catch(function (err) {
+    return getWindowsKitPath(toolName);
+  })
+  .then(function (toolPath) {
+    var appxPackagePath = path.join(fileInfo.out, fileInfo.name + '.appx');
+    var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
+    var deferred = Q.defer();
+    exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
+      if (err) {
+        var errmsg;
+        var toolErrors = stdout.match(/error:.*/g);
+        if (toolErrors) {
+          errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
+        }
+        return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
+      }
 
-            return deferred.promise;
-          });
+      deferred.resolve({
+        dir: fileInfo.dir,
+        out: appxPackagePath,
+        stdout: stdout,
+        stderr: stderr
+      });
+    });
+
+    return deferred.promise;
+  });
 }
 
 function getContents(file) {
@@ -118,22 +206,21 @@ function getContents(file) {
   return deferred.promise;
 }
 
-function deleteContents(ctx) {
-  return rmdir(ctx.dir)
-          .catch(function (err) {
-            console.log('Error deleting content folder: ' + err);
-          })
-          .then(function () {
-            return readdir(ctx.out);
-          })
-          .then(function (files) {
-            if (files.length === 0) {
-              return rmdir(ctx.out)
-            }
-          })
-          .catch(function (err) {
-            console.log('Error deleting output folder: ' + err);
-          });
+function deleteContents(fileInfo) {
+  return rmdir(fileInfo.dir).catch(function (err) {
+    console.log('Error deleting content folder: ' + err);
+  })
+  .then(function () {
+    return readdir(fileInfo.out);
+  })
+  .then(function (files) {
+    if (files.length === 0) {
+      return rmdir(fileInfo.out)
+    }
+  })
+  .catch(function (err) {
+    console.log('Error deleting output folder: ' + err);
+  });
 }
 
-module.exports = { getAppx: getAppx, makeAppx: makeAppx };
+module.exports = { getAppx: getAppx, getPri: getPri, makeAppx: makeAppx, makePri: makePri };
