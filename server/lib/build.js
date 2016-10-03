@@ -125,20 +125,21 @@ function makePri(projectRoot, outputFolder) {
         var configPath = path.join(projectRoot, configFile);
         fsStat(configPath).catch(function (err) {
             configPath = path.resolve(__dirname, '..', 'assets', configFile);
-        });
+        }).finally(function() {
+            console.log("Using " + configFile + " path: " + configPath);
+            var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
+            exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
+              if (err) {
+                return deferred.reject(err);
+              }
 
-        var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
-        exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {             
-          if (err) {
-            return deferred.reject(err);
-          }
-
-          deferred.resolve({
-            projectRoot: projectRoot,
-            outputFile: outputFile,
-            stdout: stdout,
-            stderr: stderr
-          });
+              deferred.resolve({
+                projectRoot: projectRoot,
+                outputFile: outputFile,
+                stdout: stdout,
+                stderr: stderr
+              });
+            });
         });
 
         return deferred.promise;
