@@ -119,19 +119,27 @@ function makePri(projectRoot, outputFolder) {
       var manifestPath = path.join(projectRoot, 'appxmanifest.xml');
       return getPackageIdentity(manifestPath).then(function (packageIdentity) {
         var deferred = Q.defer();
-        var configPath = path.resolve(__dirname, '..', 'assets', 'priconfig.xml');
-        var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
-        exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {             
-          if (err) {
-            return deferred.reject(err);
-          }
 
-          deferred.resolve({
-            projectRoot: projectRoot,
-            outputFile: outputFile,
-            stdout: stdout,
-            stderr: stderr
-          });
+        // check if a MakePri configuration file was provided, otherwise use the default file in 'assets'
+        var configFile = 'priconfig.xml';
+        var configPath = path.join(projectRoot, configFile);
+        fsStat(configPath).catch(function (err) {
+            configPath = path.resolve(__dirname, '..', 'assets', configFile);
+        }).finally(function() {
+            console.log("Using " + configFile + " path: " + configPath);
+            var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
+            exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
+              if (err) {
+                return deferred.reject(err);
+              }
+
+              deferred.resolve({
+                projectRoot: projectRoot,
+                outputFile: outputFile,
+                stdout: stdout,
+                stderr: stderr
+              });
+            });
         });
 
         return deferred.promise;
