@@ -159,7 +159,7 @@ function makeAppx(fileInfo) {
   })
   .then(function (toolPath) {
     var appxPackagePath = path.join(fileInfo.out, fileInfo.name + '.appx');
-    var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
+    var cmdLine = '"' + toolPath + '" pack /o /d "' + fileInfo.dir + '" /p "' + appxPackagePath + '" /l';
     var deferred = Q.defer();
     exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
       if (err) {
