@@ -139,17 +139,14 @@ function makePri(projectRoot, outputFolder) {
             command = spawn(cmdLine, {shell: true});
             
             command.stderr.on('data', (stderr) => {
-              console.log("stderr", stderr);
               spawnPackage.stderr = stderr;
             })
             
             command.stdout.on('data', (stdout) => {
-              console.log('stdout', stdout);
               spawnPackage.stdout = stdout;
             })
 
             command.on('error', (err) => {
-              console.log("err", err);
               return deferred.reject(err);
             })
 
