@@ -196,16 +196,18 @@ function makeAppx(fileInfo) {
     })
 
     command.on('error', (err) => {
-      var errmsg;
-        var toolErrors = stdout.match(/error:.*/g);
-        if (toolErrors) {
-          errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
-        }
-        return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
+      deferred.reject(err);
     })
 
     command.on("close", () => {
-      deferred.resolve(spawnPackage);
+      var errmsg;
+      var toolErrors = spawnPackage.stdout.match(/error:.*/g);
+      if (toolErrors) {
+        errmsg = spawnPackage.stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
+        deferred.reject(errmsg);
+      } else {
+        deferred.resolve(spawnPackage);
+      }
     })
 
     return deferred.promise;
