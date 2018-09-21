@@ -1,6 +1,7 @@
 ﻿var fs = require('fs'),
     Q = require('q'),
     exec = require('child_process').exec,
+    spawn = require('child_process').spawn,
     path = require('path'),
     unzip2 = require('unzip2'),
     os = require('os'),
@@ -128,18 +129,33 @@ function makePri(projectRoot, outputFolder) {
         }).finally(function() {
             console.log("Using " + configFile + " path: " + configPath);
             var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
-            exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
-              if (err) {
-                return deferred.reject(err);
-              }
+            var spawnPackage = {
+              projectRoot: projectRoot,
+              outputFile: outputFile,
+              stderr: null,
+              stdout: null
+            }
 
-              deferred.resolve({
-                projectRoot: projectRoot,
-                outputFile: outputFile,
-                stdout: stdout,
-                stderr: stderr
-              });
-            });
+            command = spawn(cmdLine, {shell: true});
+            
+            command.stderr.on('data', (stderr) => {
+              console.log("stderr", stderr);
+              spawnPackage.stderr = stderr;
+            })
+            
+            command.stdout.on('data', (stdout) => {
+              console.log('stdout', stdout);
+              spawnPackage.stdout = stdout;
+            })
+
+            command.on('error', (err) => {
+              console.log("err", err);
+              return deferred.reject(err);
+            })
+
+            command.on("close", () => {
+              deferred.resolve(spawnPackage);
+            })
         });
 
         return deferred.promise;
@@ -161,23 +177,36 @@ function makeAppx(fileInfo) {
     var appxPackagePath = path.join(fileInfo.out, fileInfo.name + '.appx');
     var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
     var deferred = Q.defer();
-    exec(cmdLine, { maxBuffer: 1024 * 1024 }, function (err, stdout, stderr) {
-      if (err) {
-        var errmsg;
+    
+    var spawnPackage = {
+      dir: fileInfo.dir,
+      out: appxPackagePath,
+      stderr: null,
+      stdout: null
+    }
+
+    command = spawn(cmdLine, {shell: true});
+    
+    command.stderr.on('data', (stderr) => {
+      spawnPackage.stderr = stderr;
+    })
+    
+    command.stdout.on('data', (stdout) => {
+      spawnPackage.stdout = stdout;
+    })
+
+    command.on('error', (err) => {
+      var errmsg;
         var toolErrors = stdout.match(/error:.*/g);
         if (toolErrors) {
           errmsg = stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
         }
         return deferred.reject(errmsg ? errmsg.join('\n') : 'MakeAppX failed.');
-      }
+    })
 
-      deferred.resolve({
-        dir: fileInfo.dir,
-        out: appxPackagePath,
-        stdout: stdout,
-        stderr: stderr
-      });
-    });
+    command.on("close", () => {
+      deferred.resolve(spawnPackage);
+    })
 
     return deferred.promise;
   });
