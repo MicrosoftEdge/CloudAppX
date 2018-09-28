@@ -129,21 +129,21 @@ function makePri(projectRoot, outputFolder) {
         }).finally(function() {
             console.log("Using " + configFile + " path: " + configPath);
             var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
-            var spawnPackage = {
+            var result = {
               projectRoot: projectRoot,
               outputFile: outputFile,
-              stderr: null,
-              stdout: null
+              stderr: "",
+              stdout: ""
             }
 
             command = spawn(cmdLine, {shell: true});
             
             command.stderr.on('data', (stderr) => {
-              spawnPackage.stderr = stderr;
+              result.stderr += stderr;
             })
             
             command.stdout.on('data', (stdout) => {
-              spawnPackage.stdout = stdout;
+              result.stdout += stdout;
             })
 
             command.on('error', (err) => {
@@ -151,7 +151,7 @@ function makePri(projectRoot, outputFolder) {
             })
 
             command.on("close", () => {
-              deferred.resolve(spawnPackage);
+              deferred.resolve(result);
             })
         });
 
@@ -175,21 +175,21 @@ function makeAppx(fileInfo) {
     var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
     var deferred = Q.defer();
     
-    var spawnPackage = {
+    var result = {
       dir: fileInfo.dir,
       out: appxPackagePath,
-      stderr: null,
-      stdout: null
+      stderr: "",
+      stdout: ""
     }
 
     command = spawn(cmdLine, {shell: true});
     
     command.stderr.on('data', (stderr) => {
-      spawnPackage.stderr = stderr;
+      result.stderr += stderr;
     })
     
     command.stdout.on('data', (stdout) => {
-      spawnPackage.stdout = stdout;
+      result.stdout += stdout;
     })
 
     command.on('error', (err) => {
@@ -197,13 +197,14 @@ function makeAppx(fileInfo) {
     })
 
     command.on("close", () => {
-      var errmsg;
-      var toolErrors = spawnPackage.stdout.match(/error:.*/g);
-      if (toolErrors) {
-        errmsg = spawnPackage.stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
-        deferred.reject(errmsg);
+      const regex = /error:.*/g;
+      var toolHadErrors = result.stdout && regex.test(result.stdout);
+      if (toolHadErrors) {
+        regex.lastIndex = 0;
+        const errorMessages = regex.exec(result.stdout).map(function (item) { return item.replace(/error:\s*/, ''); });
+        deferred.reject(errorMessages);
       } else {
-        deferred.resolve(spawnPackage);
+        deferred.resolve(result);
       }
     })
 
