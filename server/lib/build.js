@@ -12,6 +12,35 @@
 
 var defaultToolsFolder = 'appxsdk';
 
+function spawnShell(cmdLineToRun) {
+  const deferred = Q.defer();
+
+  var result = {
+    stderr: "",
+    stdout: ""
+  }
+
+  const command = spawn(cmdLineToRun, {shell: true});
+  
+  command.stderr.on('data', (stderr) => {
+    result.stderr += stderr;
+  });
+  
+  command.stdout.on('data', (stdout) => {
+    result.stdout += stdout;
+  });
+
+  command.on('error', (err) => {
+    return deferred.reject(err);
+  });
+
+  command.on("close", () => {
+    deferred.resolve(result);
+  });
+
+  return deferred.promise;
+}
+
 function getAppx(file, runMakePri) {
   // unzip package content
   return Q.fcall(getContents, file.xml).then(function (fileInfo) {    
@@ -129,30 +158,14 @@ function makePri(projectRoot, outputFolder) {
         }).finally(function() {
             console.log("Using " + configFile + " path: " + configPath);
             var cmdLine = '"' + toolPath + '" new /o /pr "' + projectRoot + '" /cf "' + configPath + '" /of "' + outputFile + '" /in ' + packageIdentity;
-            var spawnPackage = {
+
+            spawnShell(cmdLine).then((result) => deferred.resolve({
               projectRoot: projectRoot,
               outputFile: outputFile,
-              stderr: null,
-              stdout: null
-            }
-
-            command = spawn(cmdLine, {shell: true});
-            
-            command.stderr.on('data', (stderr) => {
-              spawnPackage.stderr = stderr;
-            })
-            
-            command.stdout.on('data', (stdout) => {
-              spawnPackage.stdout = stdout;
-            })
-
-            command.on('error', (err) => {
-              return deferred.reject(err);
-            })
-
-            command.on("close", () => {
-              deferred.resolve(spawnPackage);
-            })
+              stderr: result.stderr,
+              stdout: result.stdout
+              })
+            ).catch((error) => deferred.reject(error));
         });
 
         return deferred.promise;
@@ -174,38 +187,23 @@ function makeAppx(fileInfo) {
     var appxPackagePath = path.join(fileInfo.out, fileInfo.name + '.appx');
     var cmdLine = '"' + toolPath + '" pack /o /d ' + fileInfo.dir + ' /p ' + appxPackagePath + ' /l';
     var deferred = Q.defer();
-    
-    var spawnPackage = {
-      dir: fileInfo.dir,
-      out: appxPackagePath,
-      stderr: null,
-      stdout: null
-    }
 
-    command = spawn(cmdLine, {shell: true});
-    
-    command.stderr.on('data', (stderr) => {
-      spawnPackage.stderr = stderr;
-    })
-    
-    command.stdout.on('data', (stdout) => {
-      spawnPackage.stdout = stdout;
-    })
-
-    command.on('error', (err) => {
-      deferred.reject(err);
-    })
-
-    command.on("close", () => {
-      var errmsg;
-      var toolErrors = spawnPackage.stdout.match(/error:.*/g);
-      if (toolErrors) {
-        errmsg = spawnPackage.stdout.match(/error:.*/g).map(function (item) { return item.replace(/error:\s*/, ''); });
-        deferred.reject(errmsg);
+    spawnShell(cmdLine).then((result) => {
+      const regex = /error:.*/g;
+      var toolHadErrors = result.stdout && regex.test(result.stdout);
+      if (toolHadErrors) {
+        regex.lastIndex = 0;
+        const errorMessages = regex.exec(result.stdout).map(function (item) { return item.replace(/error:\s*/, ''); });
+        deferred.reject(errorMessages);
       } else {
-        deferred.resolve(spawnPackage);
+        deferred.resolve({
+          dir: fileInfo.dir,
+          out: appxPackagePath,
+          stderr: result.stderr,
+          stdout: result.stdout
+          });
       }
-    })
+    }).catch((error) => deferred.reject(error));
 
     return deferred.promise;
   });
