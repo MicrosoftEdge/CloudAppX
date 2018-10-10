@@ -2,6 +2,7 @@
   "name": "cloudappx-server",
   "version": "0.0.6",
   "description": "MakeAppX in the Cloud",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/MicrosoftEdge/CloudAppX"
@@ -16,10 +17,10 @@
     "mocha": "*"
   },
   "dependencies": {
-    "express": "^4.13.0",
-    "multer": "^0.1.8",
-    "q": "^1.4.1",
+    "express": "^4.16.3",
+    "multer": "^1.4.0",
+    "q": "^1.5.1",
     "unzip2": "^0.2.5",
-    "rimraf": "^2.4.2"
+    "rimraf": "^2.6.2"
   }
 }
