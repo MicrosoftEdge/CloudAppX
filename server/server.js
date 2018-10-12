@@ -73,15 +73,20 @@ app.get('/v2/test', function (req, res) {
   res.send('Welcome to CloudAppX');
 });
 
-app.post('/v2/build', multer({ dest: './uploads/' }), function (req, res) { buildPackage(req, res, false); });
-app.post('/v3/build', multer({ dest: './uploads/' }), function (req, res) { buildPackage(req, res, true); });
+app.post('/v2/build', multer({ dest: './uploads/' }).any(), function(req,res) {
+    buildPackage(req, res, false); 
+});
 
+app.post('/v3/build', multer({ dest: './uploads/' }).any(), function (req, res) { 
+    buildPackage(req, res, true);
+});
+//app.post()
 function buildPackage (req, res, runMakePri) {
   console.log('Building package...');
   if (req.files) {
-    console.log(util.inspect(req.files));
+    console.log(util.inspect(req.files[0]));
     var filepath;
-    build.getAppx(req.files, runMakePri).then(function (file) {
+    build.getAppx(req.files[0], runMakePri).then(function (file) {
       filepath = file.out;
       res.set('Content-type', 'application/octet-stream');
       var reader = fs.createReadStream(filepath);
@@ -111,7 +116,8 @@ function buildPackage (req, res, runMakePri) {
   }
 }
 
-app.post('/v3/makepri', multer({ dest: './uploads/' }), function (req, res) {
+app.post('/v3/makepri', multer({ dest: './uploads/' }).any(), function(req, res) {
+
   console.log('Indexing app resources...');
   if (req.files) {
     console.log(util.inspect(req.files));
@@ -144,7 +150,7 @@ app.post('/v3/makepri', multer({ dest: './uploads/' }), function (req, res) {
     })
     .done();
   }
-});
+  });
 
 app.use(function (err, req, res, next) {
   console.error('Unhandled exception processing the APPX package: ' + err);

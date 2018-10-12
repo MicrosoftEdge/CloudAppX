@@ -43,7 +43,7 @@ function spawnShell(cmdLineToRun) {
 
 function getAppx(file, runMakePri) {
   // unzip package content
-  return Q.fcall(getContents, file.xml).then(function (fileInfo) {    
+  return Q.fcall(getContents, file).then(function (fileInfo) {    
     // optionally compile the app resources
     return (runMakePri ? Q.fcall(compileResources, fileInfo) : Q())
     // generate APPX file
@@ -59,7 +59,7 @@ function getAppx(file, runMakePri) {
 
 function getPri(file) {
   // unzip package content
-  return Q.fcall(getContents, file.xml).then(function (fileInfo) {
+  return Q.fcall(getContents, file).then(function (fileInfo) {
     // generate PRI file
     return Q.fcall(makePri, fileInfo.dir, fileInfo.out)
     // clean up package contents
@@ -211,7 +211,7 @@ function makeAppx(fileInfo) {
 
 function getContents(file) {
   var deferred = Q.defer();
-  var outputDir = path.join('output', path.basename(file.name, '.' + file.extension));
+  var outputDir = path.join('output', path.basename(file.filename, '.' + file.extension));
   fs.createReadStream(file.path)
     .on('error', function (err) {
       console.log(err);
@@ -224,7 +224,7 @@ function getContents(file) {
           console.log(err);
         }
       
-        var name = path.basename(file.originalname, '.' + file.extension);
+        var name = path.basename(file.originalname.split('.')[0], '.' + file.extension);
         deferred.resolve({
           name: name,
           dir: path.join(outputDir, name),
