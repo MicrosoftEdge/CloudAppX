@@ -54,7 +54,7 @@ if (isV1ApiEnabled()) {
     res.send('Welcome to CloudAppX');
   });
 
-  app.post('/v1/upload', multer({ dest: './uploads/' }), function (req, res, next) {
+  app.post('/v1/upload', multer({ dest: './uploads/' }).any(), function (req, res, next) {
     if (req.files) {
       console.log(util.inspect(req.files));
       build.getAppx(req.files).then(function (file) {
@@ -165,7 +165,7 @@ function serve() {
     if (!process.env.TEST) {
       console.log('Example app listening at http://localhost:%s', port);
     }
-    deferred.resolve(port);
+    deferred.resolve(server);
   });
 
   return deferred.promise;

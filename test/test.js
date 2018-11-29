@@ -14,8 +14,10 @@ describe('environment', function() {
 });
 describe('end to end', function() {
   this.timeout(10000);
+  let server;
   before(function(done) {
-    cloudappx_server().then(function() {
+    cloudappx_server().then(function(svr) {
+      server = svr;
       cloudappx.cloudappx(path.join(__dirname, 'assets/testpkg')).then(done);
     });
   });
@@ -28,6 +30,7 @@ describe('end to end', function() {
     if (fs.existsSync(zipdir)) {
       fs.unlinkSync(zipdir);
     }
+    server.close();
   });
 
   it ('generates the .zip file', function() {
