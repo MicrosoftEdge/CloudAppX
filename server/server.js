@@ -160,7 +160,7 @@ app.post('/v3/makepri', multer({
   if (req.files) {
     console.log(util.inspect(req.files));
     var filepath;
-    build.getPri(req.files).then(function (file) {
+    build.getPri(req.files[0]).then(function (file) {
         filepath = file.outputFile;
         res.set('Content-type', 'application/octet-stream');
         var reader = fs.createReadStream(filepath);
