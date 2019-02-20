@@ -9,11 +9,6 @@ var express = require('express'),
 
 var app = express();
 
-var profiler = require('v8-profiler');
-
-
-const interval = 300000;
-
 var build = require('./lib/build');
 
 // API v1 has greater potential for leaving orphaned temporary files
@@ -40,22 +35,6 @@ function isV1ApiEnabled() {
 
   return false;
 }
-
-
-setInterval(function () {
-  // start profiling
-   const id = Date.now() + ".cpuprofile";
-   console.log("starting profiling ", id);
-  profiler.startProfiling(id);
-//  stop profiling in n seconds and exit
-  setTimeout(() => {
-      const profile = JSON.stringify(profiler.stopProfiling(id));
-      console.log("Profile: ", profile);
-      fs.writeFile(`${__dirname}/${id}`, profile, () => {
-          console.log("profiling done, written to:", id);
-      })
-  }, 3000)
-}, interval);
 
 if (isV1ApiEnabled()) {
   app.use('/output', function (req, res, next) {
@@ -160,7 +139,7 @@ app.post('/v3/makepri', multer({
   if (req.files) {
     console.log(util.inspect(req.files));
     var filepath;
-    build.getPri(req.files).then(function (file) {
+    build.getPri(req.files[0]).then(function (file) {
         filepath = file.outputFile;
         res.set('Content-type', 'application/octet-stream');
         var reader = fs.createReadStream(filepath);
