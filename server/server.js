@@ -1,11 +1,11 @@
 var express = require('express'),
-    fs = require('fs'),
-    multer = require('multer'),
-    util = require('util'),
-    Q = require('q'),
-    rmdir = Q.nfbind(require('rimraf')),
-    url = require('url'),
-    path = require('path');
+  fs = require('fs'),
+  multer = require('multer'),
+  util = require('util'),
+  Q = require('q'),
+  rmdir = Q.nfbind(require('rimraf')),
+  url = require('url'),
+  path = require('path');
 
 var app = express();
 
@@ -19,9 +19,17 @@ function isV1ApiEnabled() {
   var enableV1Api = process.env.ENABLE_V1_API;
   if (enableV1Api) {
     switch (enableV1Api.trim().toLowerCase()) {
-      case 'true': case 'yes': case '1': return true;
-      case 'false': case 'no': case '0': case null: return false;
-      default: return false;
+      case 'true':
+      case 'yes':
+      case '1':
+        return true;
+      case 'false':
+      case 'no':
+      case '0':
+      case null:
+        return false;
+      default:
+        return false;
     }
   }
 
@@ -46,6 +54,7 @@ if (isV1ApiEnabled()) {
     next();
   });
 
+  
   app.use('/output', express.static('output'));
 
   app.get('/v1/test', function (req, res) {
@@ -54,15 +63,17 @@ if (isV1ApiEnabled()) {
     res.send('Welcome to CloudAppX');
   });
 
-  app.post('/v1/upload', multer({ dest: './uploads/' }).any(), function (req, res, next) {
+  app.post('/v1/upload', multer({
+    dest: './uploads/'
+  }).any(), function (req, res, next) {
     if (req.files) {
       console.log(util.inspect(req.files));
       build.getAppx(req.files).then(function (file) {
-        res.send(file.out);
-      })
-      .catch(function (err) {
-        res.status(500).send('APPX package generation failed.');
-      });
+          res.send(file.out);
+        })
+        .catch(function (err) {
+          res.status(500).send('APPX package generation failed.');
+        });
     }
   });
 }
@@ -73,84 +84,90 @@ app.get('/v2/test', function (req, res) {
   res.send('Welcome to CloudAppX');
 });
 
-app.post('/v2/build', multer({ dest: './uploads/' }).any(), function(req,res) {
-    buildPackage(req, res, false); 
+app.post('/v2/build', multer({
+  dest: './uploads/'
+}).any(), function (req, res) {
+  buildPackage(req, res, false);
 });
 
-app.post('/v3/build', multer({ dest: './uploads/' }).any(), function (req, res) { 
-    buildPackage(req, res, true);
+app.post('/v3/build', multer({
+  dest: './uploads/'
+}).any(), function (req, res) {
+  buildPackage(req, res, true);
 });
 //app.post()
-function buildPackage (req, res, runMakePri) {
+function buildPackage(req, res, runMakePri) {
   console.log('Building package...');
   if (req.files) {
     console.log(util.inspect(req.files[0]));
     var filepath;
     build.getAppx(req.files[0], runMakePri).then(function (file) {
-      filepath = file.out;
-      res.set('Content-type', 'application/octet-stream');
-      var reader = fs.createReadStream(filepath);
-      reader.on('end', function () {
-        console.log('Package download completed.');
-        res.status(201).end();
-      });
-      reader.on('error', function (err) {
-        console.log('Error streaming package contents: ' + err);
-        res.status(500).send('APPX package download failed.').end();
-      });
-      reader.pipe(res);
-    })
-    .catch(function (err) {
-      console.log('Package generation failure: ' + err);
-      res.status(500).send('APPX package generation failed. ' + err).end();
-    })
-    .finally(function () {
-      if (filepath) {
-        var packageDir = path.dirname(filepath);
-        rmdir(packageDir).catch(function (err) {
-          console.log('Error deleting generated package: ' + err);
+        filepath = file.out;
+        res.set('Content-type', 'application/octet-stream');
+        var reader = fs.createReadStream(filepath);
+        reader.on('end', function () {
+          console.log('Package download completed.');
+          res.status(201).end();
         });
-      }
-    })
-    .done();
+        reader.on('error', function (err) {
+          console.log('Error streaming package contents: ' + err);
+          res.status(500).send('APPX package download failed.').end();
+        });
+        reader.pipe(res);
+      })
+      .catch(function (err) {
+        console.log('Package generation failure: ' + err);
+        res.status(500).send('APPX package generation failed. ' + err).end();
+      })
+      .finally(function () {
+        if (filepath) {
+          var packageDir = path.dirname(filepath);
+          rmdir(packageDir).catch(function (err) {
+            console.log('Error deleting generated package: ' + err);
+          });
+        }
+      })
+      .done();
   }
 }
 
-app.post('/v3/makepri', multer({ dest: './uploads/' }).any(), function(req, res) {
+app.post('/v3/makepri', multer({
+  dest: './uploads/'
+}).any(), function (req, res) {
 
   console.log('Indexing app resources...');
   if (req.files) {
     console.log(util.inspect(req.files));
     var filepath;
-    build.getPri(req.files).then(function (file) {
-      filepath = file.outputFile;
-      res.set('Content-type', 'application/octet-stream');
-      var reader = fs.createReadStream(filepath);
-      reader.on('end', function () {
-        console.log('PRI file download completed.');
-        res.status(201).end();
-      });
-      reader.on('error', function (err) {
-        console.log('Error streaming PRI file contents: ' + err);
-        res.status(500).send('PRI file download failed.').end();
-      });
-      reader.pipe(res);
-    })
-    .catch(function (err) {
-      console.log('PRI file generation failure: ' + err);
-      res.status(500).send('PRI file generation failed. ' + err).end();
-    })
-    .finally(function () {
-      if (filepath) {
-        var packageDir = path.dirname(filepath);
-        rmdir(packageDir).catch(function (err) {
-          console.log('Error deleting generated PRI file: ' + err);
+    build.getPri(req.files[0]).then(function (file) {
+        filepath = file.outputFile;
+        res.set('Content-type', 'application/octet-stream');
+        var reader = fs.createReadStream(filepath);
+        reader.on('end', function () {
+          console.log('PRI file download completed.');
+          res.status(201).end();
         });
-      }
-    })
-    .done();
+        reader.on('error', function (err) {
+          console.log('Error streaming PRI file contents: ' + err);
+          res.status(500).send('PRI file download failed.').end();
+        });
+        reader.pipe(res);
+      })
+      .catch(function (err) {
+        console.log('PRI file generation failure: ' + err);
+        res.status(500).send('PRI file generation failed. ' + err).end();
+      })
+      .finally(function () {
+        if (filepath) {
+          var packageDir = path.dirname(filepath);
+          rmdir(packageDir).catch(function (err) {
+            console.log('Error deleting generated PRI file: ' + err);
+          });
+        }
+      })
+      .done();
   }
-  });
+});
 
 app.use(function (err, req, res, next) {
   console.error('Unhandled exception processing the APPX package: ' + err);
